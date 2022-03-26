@@ -4,8 +4,6 @@ Created on Sat Mar 26 16:43:03 2022
 
 @author: atishakov
 """
-
-import reddit_api_key_request as new_key
 import time
 import json
 import os
@@ -47,8 +45,8 @@ def api_key_check(force = False):
     api_req_time = api_reddit['time_updated']
     expires_in = api_reddit['expires_in']
     to_request = (curr_time - api_req_time) > expires_in
-    if to_request and force:
-        new_key.api_request()
+    if to_request or force:
+        api_request()
         print("New key retrieval successful!")
         api_reddit = api_file()
     else:
@@ -56,6 +54,6 @@ def api_key_check(force = False):
     return api_reddit['access_token']
 
 
-token = api_key_check()
+token = api_key_check(force = True)
 headers['Authorization'] = 'bearer {}'.format(token)
 t = requests.get('https://oauth.reddit.com/api/v1/me', headers=headers)
