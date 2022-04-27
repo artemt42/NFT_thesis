@@ -27,7 +27,7 @@ def js(d):
 def api_file():
     with open('api_keys/reddit_api.txt',"r") as f:
         api_reddit = f.read()
-    api_reddit = json.loads(api_reddit)
+    api_reddit = js(api_reddit)
     return api_reddit
 
 def api_request():
