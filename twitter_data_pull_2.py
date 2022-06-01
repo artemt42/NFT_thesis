@@ -10,55 +10,64 @@ import snscrape.modules.twitter as sntwitter
 import pandas as pd
 import json
 import os
-
-# # Creating list to append tweet data
-# tweets_list1 = []
-
-# # Using TwitterSearchScraper to scrape data and append tweets to list
-# for i,tweet in enumerate(sntwitter.TwitterSearchScraper('from:jack').get_items()): #declare a username 
-#     if i>1000: #number of tweets you want to scrape
-#         break
-#     tweets_list1.append([tweet.date, tweet.id, tweet.content, tweet.user.username]) #declare the attributes to be returned
-    
-# # Creating a dataframe from the tweets list above 
-# tweets_df1 = pd.DataFrame(tweets_list1, columns=['Datetime', 'Tweet Id', 'Text', 'Username'])
-
-# Creating list to append tweet data to
-tweets_list2 = []
-
-# Using TwitterSearchScraper to scrape data and append tweets to list
+import time
+from datetime import datetime,timedelta
 
 os.chdir('C:/Users/atish/Documents/GitHub/NFT_thesis')
 
 def js(d):
     return json.loads(d)
 
-def api_file():
-    with open('twitter_dates.txt',"r") as f:
-        tw_date = js(f.read())
+def data_extract(filename):
+    with open(filename,"r") as f:
+        data = js(f.read())
     # tw_date = js(tw_date)
-    return tw_date
+    return data
 
 def get_tweets():
-    since = api_file()['since']
-    until = api_file()['until']
-    month_days = {1:32,2:29,3:32}
-    for month in range (1,4):
-        for day in range (1,month_days[month]):
-            for i,tweet in enumerate(sntwitter.TwitterSearchScraper('NFT lang:en since:'+since+' until:'+until).get_items()):
-                if i>1000:
-                    break
-                tweets_list2.append([tweet.date, tweet.id, tweet.content,
-                                     tweet.user.username, tweet.hashtags,
-                                     tweet.inReplyToTweetId,tweet.likeCount,
-                                     tweet.retweetCount])
-                
-            # Creating a dataframe from the tweets list above
-            tweets_df2 = pd.DataFrame(tweets_list2, columns=[
-                'Datetime', 'TweetId', 'Text', 'Username', 'Hashtags','reply_TweetId',
-                'likes','retweets'])
+    coll_name = data_extract('collection_names_2.txt')['collection_names'][18:]
+    # coll_name = {'Doodles':'Doodles nft',}
+    log_file = open('tweets/error_log.txt',"a")
 
-    return tweets_df2
+    for search_term in coll_name:
+        # Creating list to append tweet data
+        max_date = datetime.strptime('2022-01-01','%Y-%m-%d')
+        start_date = datetime.strptime('2021-01-01','%Y-%m-%d')
+        end_date = start_date + timedelta(days=1)
+        tweets_list2 = []
+        while start_date < max_date:
+            since = datetime.strftime(start_date,'%Y-%m-%d')
+            until = datetime.strftime(end_date,'%Y-%m-%d')
+            nft_words = ['nft','non-fungible token','non-fungible-token','nonfungibletoken','non fungible token'] #ensure that only nft tweets are found
+            if not any(word in str.lower(search_term) for word in nft_words):
+                search_term += " nft"
+            to_search = search_term +' until:'+until+' since:'+since+' min_faves:1'
+            try:
+                for i,tweet in enumerate(sntwitter.TwitterSearchScraper(to_search).get_items()):
+                    if i>1000:
+                        break
+                    tweets_list2.append([tweet.date, tweet.id, tweet.content,
+                                         tweet.user.username, tweet.hashtags,
+                                         tweet.inReplyToTweetId,tweet.likeCount,
+                                         tweet.retweetCount])
+                to_log = 'downloaded nft collection: '+search_term+' until: '+until+' count of tweets: ',str(len(tweets_list2))
+                print(to_log)
+                log_file.write(to_log)
+            except TypeError as e:
+                to_log = "no data for "+search_term+' until '+until+' '+str(e)
+                log_file.write(to_log)
+            time.sleep(2)
+            start_date = end_date
+            end_date = end_date + timedelta(days=1)
+        # Creating a dataframe from the tweets list above
+        tweets_df2 = pd.DataFrame(tweets_list2, columns=['Datetime', 'TweetId',
+                                                         'Text', 'Username',
+                                                         'Hashtags',
+                                                         'reply_TweetId',
+                                                         'likes','retweets'])
+        tweets_df2.to_csv('tweets/'+search_term+'.csv')
+
+    log_file.close()
 
 tweets_df = get_tweets()
-filtered_df = tweets_df[(tweets_df['retweets']>5) & (tweets_df['likes']>5)]
+# filtered_df = tweets_df[(tweets_df['retweets']>5) & (tweets_df['likes']>5)]
