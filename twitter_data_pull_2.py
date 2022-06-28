@@ -69,5 +69,79 @@ def get_tweets():
 
     log_file.close()
 
-tweets_df = get_tweets()
+def get_user_data(i, search_term):
+    log_file = open('twitter_users/error_log.txt',"a")
+    print(i,end=":")
+    # while True:
+    try:
+        user = sntwitter.TwitterUserScraper(search_term).entity
+        user_data = [user.id,
+                        user.username,
+                        user.verified,
+                        user.followersCount,
+                        user.friendsCount,
+                        user.statusesCount,
+                        user.favouritesCount,
+                        user.rawDescription,
+                        user.renderedDescription,
+                        user.descriptionLinks,
+                        user.created,
+                        user.location,
+                        user.protected,
+                        user.link,
+                        user.label]
+        to_log = 'downloaded user data for: '+search_term
+        print(to_log)
+    except (AttributeError,KeyError) as e:
+        to_log = "no data for "+search_term
+        user_data = [0,search_term,False,0,0,0,0,"no data","no data",[],'1970-01-01 00:00:00+00:00','',False,None,None]
+        print(to_log)
+        print(e)
+
+    log_file.write(to_log)
+    log_file.close()
+    i += 1
+    return user_data, i
+
+# tweets_df = get_tweets()
 # filtered_df = tweets_df[(tweets_df['retweets']>5) & (tweets_df['likes']>5)]
+
+user_name = pd.read_csv('twitter_users/twitter_users.csv')['Username']
+user_name = user_name.values.tolist()
+user_name.sort()
+# Creating list to append tweet data
+user_data = []
+i = 0
+for search_term in user_name[36993:]:
+    function_data = get_user_data(i, search_term)
+    user = function_data[0]
+    user_data.append(user)
+
+    i = function_data[1]
+    time.sleep(1)
+
+
+# Creating a dataframe from the tweets list above
+users_df = pd.DataFrame(user_data, columns=["id",
+                                            "username",
+                                            "verified",
+                                            "followers_count",
+                                            "following_count",
+                                            "statuses_count",
+                                            "favourites_count",
+                                            "raw_description",
+                                            "rendered_description",
+                                            "description_links",
+                                            "user_creation_date",
+                                            "location",
+                                            "protected",
+                                            "links",
+                                            "user_label"])
+users_df.to_csv('twitter_users/all_user_data.csv')
+
+# pee =  pd.read_csv('twitter_users/twitter_users.csv')['Username']
+# user_df = pd.read_csv("twitter_users/all tweets adj.csv",encoding=('utf-8'))
+# user_list_df = user_df['Username'].unique()
+# user_list_df.sort()
+# user_list_df = pd.DataFrame(user_list_df,columns = ['Username'])
+# user_list_df.to_csv("twitter_users.csv")
