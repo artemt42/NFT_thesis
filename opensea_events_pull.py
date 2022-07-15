@@ -16,47 +16,47 @@ import ast
 import time
 from urllib3.exceptions import ProtocolError
 
-os.chdir('G:/My Drive/BIM Thesis/Opensea data')
-save_dir = r'C:\Users\atish\Documents\GitHub\NFT_thesis\events'
+curr_dir = r'C:\Users\atish\Documents\GitHub\NFT_thesis\events'
+save_dir = r'C:\Users\atish\Documents\GitHub\NFT_thesis\events\event_batches'
 version = 2
 
 opensea_key = os.getenv("opensea_api_"+str(version))
-df = pd.read_csv("addresses_and_tokens_new.csv",low_memory=False)
+df = pd.read_csv(os.path.join(curr_dir,"missing_events.csv"),low_memory=False)
 # df = df.sort_values(by='collection_slug')
-top_collections=df.groupby("collection_slug").sample(frac=0.2,random_state=7)
+top_collections=df.groupby("collection_slug").sample(frac=0.4,random_state=7)
 del df
-des_columns = ['approved_account','asset.asset_contract.address','asset.description','asset.id','asset.name','asset.token_id','asset.token_metadata','auction_type','bid_amount','collection_slug','contract_address','created_date','custom_event_name','dev_fee_payment_event','dev_fee_payment_event.asset','dev_fee_payment_event.asset_bundle','dev_fee_payment_event.auction_type','dev_fee_payment_event.created_date','dev_fee_payment_event.event_timestamp','dev_fee_payment_event.event_type','dev_fee_payment_event.payment_token.address','dev_fee_payment_event.payment_token.decimals','dev_fee_payment_event.payment_token.eth_price','dev_fee_payment_event.payment_token.image_url','dev_fee_payment_event.payment_token.name','dev_fee_payment_event.payment_token.symbol','dev_fee_payment_event.payment_token.usd_price','dev_fee_payment_event.quantity','dev_fee_payment_event.total_price','dev_fee_payment_event.transaction.block_hash','dev_fee_payment_event.transaction.block_number','dev_fee_payment_event.transaction.from_account','dev_fee_payment_event.transaction.id','dev_fee_payment_event.transaction.timestamp','dev_fee_payment_event.transaction.to_account','dev_fee_payment_event.transaction.transaction_hash','dev_fee_payment_event.transaction.transaction_index','dev_seller_fee_basis_points','duration','ending_price','event_timestamp','event_type','from_account.address','from_account.config','from_account.user.username','id','is_private','listing_time','payment_token.address','payment_token.decimals','payment_token.eth_price','payment_token.name','payment_token.symbol','payment_token.usd_price','quantity','seller.address','seller.config','seller.user.username','starting_price','to_account.address','to_account.config','to_account.user.username','total_price','transaction.block_hash','transaction.block_number','transaction.from_account.address','transaction.from_account.config','transaction.from_account.user','transaction.from_account.user.username','transaction.id','transaction.timestamp','transaction.to_account.address','transaction.to_account.config','transaction.to_account.user.username','transaction.transaction_hash','transaction.transaction_index','winner_account.address','winner_account.config','winner_account.user.username']
+des_columns = ["asset_asset_contract_address","asset_id","asset_name","asset_token_id","auction_type","bid_amount","collection_slug","contract_address","created_date","dev_fee_payment_event_created_date","dev_fee_payment_event_event_timestamp","dev_fee_payment_event_event_type","dev_fee_payment_event_payment_token_address","dev_fee_payment_event_payment_token_decimals","dev_fee_payment_event_payment_token_eth_price","dev_fee_payment_event_payment_token_name","dev_fee_payment_event_payment_token_symbol","dev_fee_payment_event_payment_token_usd_price","dev_fee_payment_event_quantity","dev_fee_payment_event_transaction_block_hash","dev_fee_payment_event_transaction_block_number","dev_fee_payment_event_transaction_id","dev_fee_payment_event_transaction_timestamp","dev_fee_payment_event_transaction_transaction_hash","dev_fee_payment_event_transaction_transaction_index","dev_seller_fee_basis_points","duration","ending_price","event_timestamp","event_type","from_account_address","from_account_config","from_account_user_username","id","is_private","listing_time","payment_token_address","payment_token_decimals","payment_token_eth_price","payment_token_name","payment_token_symbol","payment_token_usd_price","quantity","seller_address","seller_config","seller_user_username","starting_price","to_account_address","to_account_config","to_account_user_username","total_price","transaction_block_hash","transaction_block_number","transaction_from_account_address","transaction_from_account_config","transaction_from_account_user_username","transaction_id","transaction_timestamp","transaction_to_account_address","transaction_to_account_config","transaction_to_account_user_username","transaction_transaction_hash","transaction_transaction_index","winner_account_address","winner_account_config","winner_account_user_username","sampling"]
 
-slugs = top_collections['collection_slug'].values.tolist()
-token_id = top_collections['token_id'].values.tolist()
+necessary_values = {'doodles-official':177,'boredapeyachtclub':539,'meebits':3047,'alienfrensnft':2000}
+
+# top_collections['slug_address'] = top_collections['collection_slug']+","+top_collections['asset_contract_address']
+
+top_collections_tokens = {k: list(v) for k, v in top_collections.groupby('collection_slug')['token_id']}
+top_collections_address = {k: list(v) for k, v in top_collections.groupby('collection_slug')['asset_contract_address']}
+
 # log_file = open(save_dir+'/error_log.txt',"a")
-def dl_data(i,nxt='',to_df=[]):
-    wait_time = 3 # if the response status code is not 200
+def dl_data(i,collection_name,address,nxt='',to_df=[]):
+    wait_time = 4 # if the response status code is not 200
     headers = {"Accept": "application/json",
                "X-API-KEY":opensea_key}
     j = 0
-    while nxt != None:
-        asset_id = top_collections['asset_contract_address'].values.tolist()
-        asset = asset_id[i]
-        token = str(token_id[i])
-        collection_name = slugs[i]
-        url = "https://api.opensea.io/api/v1/events?token_id="+token+"&asset_contract_address="+asset+"&cursor="+nxt+"&occurred_before=1640991600&occurred_after=1622498400"
-        # asset = '0x39fa15e7dffd76bdeec83c9a1a8ef023661c9b6c'
-        # token = '7'
-        # nxt = ''
-        # url = "https://api.opensea.io/api/v1/events?token_id="+token+"&asset_contract_address="+asset+"&cursor="+nxt #+"&occurred_before=1640991600&occurred_after=1609455600"
+    response = ''
 
+    while nxt != None:
+        token = str(i)
+    
+        url = "https://api.opensea.io/api/v1/events?asset_contract_address="+address+"&token_id="+token+"&collection_slug="+collection_name+"&cursor="+nxt+"&occurred_before=1640991600&occurred_after=1622498400"
+        # print(url)
         response = requests.request("GET", url, headers=headers)
-        j+=1
-        # log_msg = collection_name+ ", token:"+token+", page:"+ str(j)+ ", status code:"+str(response.status_code) +"/n"
+        log_msg = collection_name+ ", token:"+token+", page:"+ str(j)+ ", status code:"+str(response.status_code) +"/n"
         # print(log_msg)
-        # log_file.write(log_msg)
+    
         if response.status_code != 200:
             log_msg = collection_name+ ", token:"+token+", page:"+ str(j)+ ", status code:"+str(response.status_code) +"/n"
-            # log_file.write(log_msg)
             print(log_msg)
             time.sleep(wait_time)
             return response,nxt,to_df
+    
         parsed = json.loads(response.text)
         nxt = parsed['next']
         if len(to_df)<1:
@@ -65,46 +65,72 @@ def dl_data(i,nxt='',to_df=[]):
             to_df.extend(parsed["asset_events"])
         # if j > 10200:
             # break
+        j+=1
 
+    #--
 
     return response,nxt,to_df
 
-pages = len(slugs)
+#
 to_df = []
-start = int(47424/4)
-for i in range(15917, 16200):
-    while True:
-        try:
-            if len(to_df) < 1:
-                data = dl_data(i)
-            else:
-                data = dl_data(i,'',data[2])
-            break
-        except (ConnectionResetError,ProtocolError,ConnectionError) as e:
-            print("Connection error: "+str(e)+" \nRestarting in 30 seconds")
-            time.sleep(30)
-            continue
-    s_code = data[0]
-    while s_code.status_code != 200: #retry functionality in case opensea returns response other than 200
-        data = dl_data(i,data[1],data[2])
+for key,value in necessary_values.items():
+    address = top_collections_address[key][0]
+    page_limit = len(top_collections_tokens[key])
+    token_list = top_collections_tokens[key]
+    collection_name = key
+    header = True
+    k = 0
+    for i in token_list:
+        while True:
+            try:
+                print(collection_name+" #"+str(i))
+                if len(to_df) < 1:
+                    data = dl_data(i,collection_name,address)
+                else:
+                    data = dl_data(i,collection_name,address,'',data[2])
+                break
+            except (ConnectionResetError,ProtocolError,ConnectionError) as e:
+                print("Connection error: "+str(e)+" \nRestarting in 10 seconds")
+                time.sleep(10)
+                continue
         s_code = data[0]
+        while s_code.status_code != 200: #retry functionality in case opensea returns response other than 200
+            data = dl_data(i,collection_name,address,data[1],data[2])
+            s_code = data[0]
+    
+        file_name = key
 
-    this_name = slugs[i]
-    prev_name = slugs[i-1]
-    token = str(token_id[i])
-    if i < 1:
-        prev_name = this_name
-    print(this_name,str(token))
-    to_df = data[2]
-    df_collections = pd.json_normalize(to_df)
-    df_columns = df_collections.columns
-    columns = [c for c in df_columns if c in des_columns]
-    df_collections.to_csv(save_dir+"/nft_events_"+this_name+"-"+token+".csv",index=False, columns=columns)
-    # with open("downloaded_events_"+str(version)+".txt","a") as dl_log:
-    #     dl_log.write(this_name+"-"+token+"\n")
-    # dl_log.close()
-    # del dl_log
-    to_df = []
+        to_df = data[2]
+        df_collections = pd.json_normalize(to_df)
+        df_columns = df_collections.columns
+
+        col_names = dict()
+        for cols in df_columns:
+            cols1 = cols
+            cols2 = cols
+            if "." in cols:
+                cols2 = cols.replace(".","_") #replaces dots with underscores, so that can be parsed in postgresql
+            col_names[cols1]=cols2
+
+        df_collections = df_collections.rename(col_names,axis=1) #renames columns as per dictionary
+
+        df_collections = df_collections.drop(columns=[c for c in df_collections if c not in des_columns]) #drops columns if they are not in des_columns
+
+        df_collections = df_collections.reindex(df_collections.columns.union(des_columns, sort=None), axis=1, fill_value='') #adds the columns again, but with empty values
+        df_collections["sampling"] = 'sampled'
+
+        if len(to_df)>10:
+            # print(df_collections.head())
+            df_collections.to_csv(save_dir+r"\nft_events_"+file_name+".csv",mode='a',
+                                  index=False, columns=des_columns,header=header)
+            print(str(k)+": "+collection_name+" #"+str(i))
+            k+= 1
+            if k > value:
+                break
+        else:
+            print(key+":"+str(i)+" empty")
+        header = False
+        to_df = []
 # log_file.close()
 
         # to_df=[]

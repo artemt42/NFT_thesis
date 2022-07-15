@@ -32,7 +32,7 @@ def get_tweets():
     for search_term in coll_name:
         # Creating list to append tweet data
         max_date = datetime.strptime('2022-01-01','%Y-%m-%d')
-        start_date = datetime.strptime('2021-01-01','%Y-%m-%d')
+        start_date = datetime.strptime('2021-06-01','%Y-%m-%d')
         end_date = start_date + timedelta(days=1)
         tweets_list2 = []
         while start_date < max_date:
@@ -139,7 +139,12 @@ users_df = pd.DataFrame(user_data, columns=["id",
                                             "user_label"])
 users_df.to_csv('twitter_users/all_user_data.csv')
 
-# pee =  pd.read_csv('twitter_users/twitter_users.csv')['Username']
+pee = pd.read_csv('twitter_users/all_user_data_first_half.csv')
+e = pd.read_csv('twitter_users/all_user_data.csv')
+f = pee.append(e)
+
+f.to_csv('twitter_users/all_user_data_combined.csv')
+
 # user_df = pd.read_csv("twitter_users/all tweets adj.csv",encoding=('utf-8'))
 # user_list_df = user_df['Username'].unique()
 # user_list_df.sort()

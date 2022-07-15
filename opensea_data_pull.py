@@ -15,11 +15,12 @@ from io import StringIO
 import ast
 import time
 
-opensea_key = os.getenv("opensea_api_2")
-top_collections = pd.read_csv("top 100 collections.csv")
+opensea_key = os.getenv("opensea_api_1")
+# top_collections = pd.read_csv("top 100 collections.csv")
+
 slugs = top_collections['slug'].values.tolist()
 def dl_data(i,nxt='',to_df=[]):
-    wait_time = 4
+    wait_time = 2
     headers = {"Accept": "application/json",
                "X-API-KEY":opensea_key}
     j = 0
@@ -46,7 +47,7 @@ def dl_data(i,nxt='',to_df=[]):
     return response,nxt,to_df
 
 pages = len(slugs)
-for i in range(15, pages):
+for i in range(0, pages):
     data = dl_data(i)
     s_code = data[0]
     while s_code.status_code != 200:
