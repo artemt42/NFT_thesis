@@ -47,7 +47,38 @@ des_columns = ['approved_account','asset.asset_contract.address',
                'transaction.transaction_index','winner_account.address','winner_account.config','winner_account.user.username',
                'sampling']
 
-save_path = r'C:\Users\atish\Documents\GitHub\NFT_thesis\events' # use your path
+des_columns1 = ['approved_account','asset_asset_contract_address',
+               # 'asset_description',
+               'asset_id','asset_name','asset_token_id',
+               # 'asset_token_metadata',
+               'auction_type','bid_amount','collection_slug','contract_address','created_date','custom_event_name',
+               'dev_fee_payment_event','dev_fee_payment_event_asset','dev_fee_payment_event_asset_bundle',
+               'dev_fee_payment_event_auction_type','dev_fee_payment_event_created_date',
+               'dev_fee_payment_event_event_timestamp','dev_fee_payment_event_event_type',
+               'dev_fee_payment_event_payment_token_address','dev_fee_payment_event_payment_token_decimals',
+               'dev_fee_payment_event_payment_token_eth_price',
+               # 'dev_fee_payment_event_payment_token_image_url',
+               'dev_fee_payment_event_payment_token_name','dev_fee_payment_event_payment_token_symbol',
+               'dev_fee_payment_event_payment_token_usd_price','dev_fee_payment_event_quantity',
+               'dev_fee_payment_event_total_price','dev_fee_payment_event_transaction_block_hash',
+               'dev_fee_payment_event_transaction_block_number','dev_fee_payment_event_transaction_from_account',
+               'dev_fee_payment_event_transaction_id','dev_fee_payment_event_transaction_timestamp',
+               'dev_fee_payment_event_transaction_to_account','dev_fee_payment_event_transaction_transaction_hash',
+               'dev_fee_payment_event_transaction_transaction_index','dev_seller_fee_basis_points','duration',
+               'ending_price','event_timestamp','event_type','from_account_address','from_account_config',
+               'from_account_user_username','id','is_private','listing_time','payment_token_address',
+               'payment_token_decimals','payment_token_eth_price','payment_token_name',
+               'payment_token_symbol','payment_token_usd_price','quantity','seller_address',
+               'seller_config','seller_user_username','starting_price','to_account_address',
+               'to_account_config','to_account_user_username','total_price','transaction_block_hash',
+               'transaction_block_number','transaction_from_account_address','transaction_from_account_config',
+               'transaction_from_account_user','transaction_from_account_user_username','transaction_id',
+               'transaction_timestamp','transaction_to_account_address','transaction_to_account_config',
+               'transaction_to_account_user_username','transaction_transaction_hash',
+               'transaction_transaction_index','winner_account_address','winner_account_config','winner_account_user_username',
+               'sampling']
+
+save_path = r'C:\Users\atish\Documents\GitHub\NFT_thesis\events\event_batches' # use your path
 path = r'C:\Users\atish\Documents\GitHub\NFT_thesis\events\batch_files\sampled' # use your path
 path1 = r'C:\Users\atish\Documents\GitHub\NFT_thesis\events\batch_files\non_sampled\full-year'
 path2 = r'C:\Users\atish\Documents\GitHub\NFT_thesis\events\batch_files\non_sampled\half-year'
@@ -239,47 +270,55 @@ def remove(csv):
 
 
 chunk_size = 100000
-big_csv = os.path.join(save_path, "nft_events_all.csv")
+csv1 = os.path.join(save_path, "all_nft_sales1.csv")
+csv2 = os.path.join(save_path, "all_nft_sales2.csv")
 total = 77271127
 i = 0
 
-for chunk in pd.read_csv(big_csv,chunksize=chunk_size,low_memory=False,usecols=des_columns):
+csv_sales_1 = pd.read_csv(csv1,low_memory=False)
+csv_sales_2 = pd.read_csv(csv2,low_memory=False)
 
-    conn = psycopg2.connect(host="localhost",database="nft_collections",user="postgres",password="1")
-    engine = create_engine('postgresql://postgres:1@localhost:5432/nft_collections')
-    
-    conn.autocommit = True
-    cursor = conn.cursor()
-    
-    columns = des_columns
-    col_names = dict()
-    for cols in columns:
-        cols1 = cols
-        cols2 = cols
-        if "." in cols:
-            cols2 = cols.replace(".","_")
-        col_names[cols1]=cols2
+csv_sales = pd.concat([csv_sales_1,csv_sales_2])
 
-    df_upload = chunk.rename(col_names,axis=1)
-    for cols in df_upload:
-        df_upload[cols] = df_upload[cols].astype(str).copy()
-    # df_upload = df_upload.drop(['metadata','maker','taker','fee_recipient','payment_token_contract'],1)
+# for chunk in pd.read_csv(big_csv,chunksize=chunk_size,low_memory=False,usecols=des_columns):
 
-    cols = " varchar(800), ".join(name for name in col_names)
-    cols = cols +" varchar(800)"
-    # sql = '''CREATE TABLE DETAILS('''+cols+''');'''
-    df_sql = df_upload.to_sql(name="nft_events",con=engine,if_exists='append',index=False)
+conn = psycopg2.connect(host="localhost",database="nft_collections",user="postgres",password="1")
+engine = create_engine('postgresql://postgres:1@localhost:5432/nft_collections')
 
-    
-    # cursor.execute(sql)
-    conn.commit()
-    conn.close()
+conn.autocommit = True
+cursor = conn.cursor()
 
-    chunk_len = len(chunk)
-    i += chunk_len
+# columns = des_columns
+# col_names = dict()
+# for cols in columns:
+#     cols1 = cols
+#     cols2 = cols
+#     if "." in cols:
+#         cols2 = cols.replace(".","_")
+#     col_names[cols1]=cols2
 
-    print("upserted "+str("{:,}".format(i)) +" out of "+str("{:,}".format(total)))
+# df_upload = chunk.rename(col_names,axis=1)
+df_upload = csv_sales.copy()
+for cols in df_upload:
+    df_upload[cols] = df_upload[cols].astype(str).copy()
+# df_upload = df_upload.drop(['metadata','maker','taker','fee_recipient','payment_token_contract'],1)
+df_upload = df_upload.reindex(df_upload.columns.union(des_columns1, sort=False), axis=1, fill_value='')
+
+cols = " varchar(1000), ".join(name for name in des_columns1)
+cols = cols +" varchar(1000)"
+# sql = '''CREATE TABLE DETAILS('''+cols+''');'''
+df_sql = df_upload.to_sql(name="nft_sale_events",con=engine,if_exists='append',index=False)
+
+
+# cursor.execute(sql)
+conn.commit()
+conn.close()
+
+# chunk_len = len(chunk)
+# i += chunk_len
+
+# print("upserted "+str("{:,}".format(i)) +" out of "+str("{:,}".format(total)))
 
 
 print("\nDone!")
-print("Successfully upserted "+str("{:,}".format(i))+" lines from "+big_csv)
+# print("Successfully upserted "+str("{:,}".format(i))+" lines from "+big_csv)
