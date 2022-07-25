@@ -269,11 +269,11 @@ def remove(csv):
 # # remove(all_files)
 
 
-chunk_size = 100000
+# chunk_size = 100000
 csv1 = os.path.join(save_path, "all_nft_sales1.csv")
 csv2 = os.path.join(save_path, "all_nft_sales2.csv")
-total = 77271127
-i = 0
+# total = 77271127
+# i = 0
 
 csv_sales_1 = pd.read_csv(csv1,low_memory=False)
 csv_sales_2 = pd.read_csv(csv2,low_memory=False)
@@ -301,7 +301,6 @@ cursor = conn.cursor()
 df_upload = csv_sales.copy()
 for cols in df_upload:
     df_upload[cols] = df_upload[cols].astype(str).copy()
-# df_upload = df_upload.drop(['metadata','maker','taker','fee_recipient','payment_token_contract'],1)
 df_upload = df_upload.reindex(df_upload.columns.union(des_columns1, sort=False), axis=1, fill_value='')
 
 cols = " varchar(1000), ".join(name for name in des_columns1)

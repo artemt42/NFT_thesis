@@ -1,9 +1,8 @@
 
 api_keys/
-collections/top100_collections.csv
 collections/nft_collections.zip
-nfts_sample.csv
-nfts_collections.csv
 /events
 /tweets_broken
 tweets.zip
+*.txt
+*.csv

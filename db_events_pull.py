@@ -32,3 +32,27 @@ def pull_events(cols,table):
     conn.close()
 
     return df
+
+def pull_tweets(cols,table):
+    conn = psycopg2.connect(host="localhost",database="nft_collections",user="postgres",password="1")
+    # engine = create_engine('postgresql://postgres:1@localhost:5432/nft_collections')
+
+    desired_columns = cols
+
+    #slug = 'cool-cats-nft'
+    
+    query_col_names = "select *"+" \n"
+    query_table = "from public."+table+" \n"
+
+    query = query_col_names + query_table #+ query_clauses
+    
+    conn.autocommit = True
+    cursor = conn.cursor()
+    
+    cursor.execute(query)
+    
+    df = pd.DataFrame(cursor.fetchall(),columns=desired_columns)
+    
+    conn.close()
+
+    return df
