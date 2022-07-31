@@ -11,6 +11,7 @@ import os
 from datetime import datetime
 import emoji
 from textblob import TextBlob
+import langid
 
 pd.options.display.float_format = '{:.4f}'.format
 
@@ -178,18 +179,18 @@ def twitter_grouper(min_likes,min_retw,min_term,tw_term,df_tw_clean):
     return daily_tw_averages, col_list
     # del daily_tw,day,daily_averages_name,daily_tw_averages_temp,df_temp,analysis_col,idx
 
-def analyse_grouper(col_list,nft_values_per_slug,df_twitter_clean):
+def analyse_grouper(col_list,nft_values_per_slug,df_twitter_clean,lag):
     #Combining the data
     df_nft_analyse = defaultdict(dict)
     # df_nft_analyse = daily_nft_values.copy()
     nft_variable = 'total_price_eth'
-    lag = -1
+    # lag = -1
 
     for key,value in nft_values_per_slug.items():
         # value = value.reset_index()
         # value['interpolated_mean'] = value['mean'].interpolate(option='spline')
         # value = value.set_index('date')
-        df_nft_analyse[key] = value[['event_timestamp',nft_variable]]#[:lag]
+        df_nft_analyse[key] = value[['date',nft_variable]]#[:lag]
 
     df_tw_analyse = defaultdict(dict)
     for key,value in df_twitter_clean.items():
@@ -202,7 +203,7 @@ def analyse_grouper(col_list,nft_values_per_slug,df_twitter_clean):
         df_temp = value.merge(df_nft_analyse[key],on='date',how='left')
         # df_temp['rel_price_change_pct'] = df_temp['interpolated_mean'].pct_change()
         # df_temp['rel_price_change_pct'] = df_temp['rel_price_change_pct'].fillna(1)
-        df_temp[nft_variable] = df_temp[nft_variable].shift(lag)
+        df_temp[nft_variable] = df_temp[nft_variable].shift(-lag)
         default_cols = ["date",nft_variable,"user_followers_count_mean"]
         df_analyse[key] = df_temp[default_cols].dropna()
 
@@ -214,6 +215,11 @@ def sentiment_calc(text):
     except:
         return None
 
+def detect_lang(text):
+    try:
+        return langid.classify(text)[0]
+    except:
+        return None
 #Cleaning data
 # df_tw = df_twitter.copy()
 
@@ -243,72 +249,82 @@ df_twitter = df_twitter[~df_twitter['tweet_clean'].isin(exclude_tweet_strings)]
 # text sentiment analysis
 df_twitter['tweet_sent_score'] = df_twitter['tweet_clean'].apply(sentiment_calc)
 df_twitter['tweet_sent_polarity'] = df_twitter['tweet_sent_score'].apply(lambda x:get_tweet_sent_result(x))
+df_twitter['tweet_sent_language'] = df_twitter['tweet_clean'].apply(detect_lang)
 df_tw_clean = df_twitter.copy()
 
-# df_tw_clean.to_csv(r"C:\Users\atish\Documents\GitHub\NFT_thesis\twitter_users\clean csv\tweets.csv")
+df_tw_clean[['tweet_sent_language1','tweet_sent_language2']] = pd.DataFrame(df_tw_clean['tweet_sent_language'].tolist(),index=df_tw_clean.index)
+
+df_tw_clean = pd.read_csv(r"C:\Users\atish\Documents\GitHub\NFT_thesis\rstudio\tweets_clean_rstudio.csv",low_memory=False)
+
+name_to_slug_dict = {'10KTF nft':'10ktf','10KTF Stockroom nft':'10ktf-stockroom','adidas Originals Into the Metaverse nft':'adidasoriginals','alien frens nft':'alienfrensnft','Bored Ape Chemistry Club nft':'bored-ape-chemistry-club','Bored Ape Kennel Club nft':'bored-ape-kennel-club','Bored Ape Yacht Club nft':'boredapeyachtclub','CLONE X - X TAKASHI MURAKAMI nft':'clonex','Cool Cats NFT':'cool-cats-nft','CrypToadz by GREMPLIN nft':'cryptoadz-by-gremplin','CryptoPunks nft':'cryptopunks','DeadFellaz nft':'deadfellaz','Decentraland nft':'decentraland','Doodles nft':'doodles-official','Kaiju Kingz nft':'kaiju-kingz','Meebits nft':'meebits','mfers nft':'mfers','Milady Maker nft':'milady','Mutant Ape Yacht Club nft':'mutant-ape-yacht-club','NFT Worlds':'nft-worlds','Cyber Factory 2 nft':'oncyber','PROOF Collective nft':'proof-collective','Psychedelics Anonymous Genesis nft':'psychedelics-anonymous-genesis','Pudgy Penguins nft':'pudgypenguins','The Sandbox nft':'sandbox','TBAC nft':'tbac','VeeFriends nft':'veefriends','World of Women nft':'world-of-women-nft'}
+df_tw_clean = df_tw_clean.replace({'tweet_search_term':name_to_slug_dict})
+df_tw_clean.to_csv(r"C:\Users\atish\Documents\GitHub\NFT_thesis\rstudio\tweets_clean_rstudio.csv",index=False)
+# df_nft.to_csv(r"C:\Users\atish\Documents\GitHub\NFT_thesis\rstudio\nfts_clean.csv",index=False)
 
 
+# min_likes = 0
+# min_retw = 0
+# min_followers = 0
+# nft_lag = 1 # number of days to lag the NFT dates by
+# analysis_columns = ['user_followers_count']
 
-min_likes = 5
-min_retw = 0
-min_followers = 100
-analysis_columns = ['user_followers_count']
-
-# d = df_twitter.groupby('tweet_search_term').describe()
-# d1 = df_nft.groupby('collection_slug').describe()
-# d.to_csv(r"G:\My Drive\BIM Thesis\results\twitter_stats.txt")
-# d1.to_csv(r"G:\My Drive\BIM Thesis\results\nft_stats.txt")
+# # d = df_twitter.groupby('tweet_search_term').describe()
+# # d1 = df_nft.groupby('collection_slug').describe()
+# # d.to_csv(r"G:\My Drive\BIM Thesis\results\twitter_stats.txt")
+# # d1.to_csv(r"G:\My Drive\BIM Thesis\results\nft_stats.txt")
 
 
-# Analysis
-# Popularity
-# df_tw_clean = df_tw_clean[(df_twitter['retweets']>=min_likes) &
-#                           (df_twitter['tweet_likes']>=min_retw) &
-#                           (df_twitter['user_followers_count']>=min_followers)]
+# # Analysis
+# # Popularity
+# # df_tw_clean = df_tw_clean[(df_twitter['retweets']>=min_likes) &
+# #                           (df_twitter['tweet_likes']>=min_retw) &
+# #                           (df_twitter['user_followers_count']>=min_followers)]
 
-nft_values_per_slug = nft_grouper(df_nft.copy())
+# nft_values_per_slug = nft_grouper(df_nft.copy())
 
-# Sentiment
-df_tw_clean = df_tw_clean[(df_tw_clean['tweet_sent_score']!=0)]
+# # Sentiment
+# # df_tw_clean = df_tw_clean[(df_tw_clean['tweet_sent_score']!=0)]
 
-df_twitter_clean,col_list = twitter_grouper(min_likes,min_retw,min_followers,analysis_columns,df_tw_clean)
+# df_twitter_clean,col_list = twitter_grouper(min_likes,min_retw,min_followers,analysis_columns,df_tw_clean)
 
-# nft_variable = 'interpolated_mean'
-# nft_variable = 'rel_price_change_pct'
-df_analyse,default_cols = analyse_grouper(col_list,nft_values_per_slug,df_twitter_clean)
+
+# # nft_variable = 'interpolated_mean'
+# # nft_variable = 'rel_price_change_pct'
+# df_analyse,default_cols = analyse_grouper(col_list,nft_values_per_slug,df_twitter_clean,nft_lag)
 # default_cols.remove('date')
+# default_cols.remove('total_price_eth')
 
+# ts = datetime.now().strftime("%Y%m%d %H%M%S")
+# # Model
 
-ts = datetime.now().strftime("%Y%m%d %H%M%S")
-# Model
+# def results_summary_to_dataframe(nft,results):
+#     '''take the result of an statsmodel results table and transforms it into a dataframe'''
+#     pvals = results.pvalues
+#     coeff = results.params
+#     conf_lower = results.conf_int()[0]
+#     conf_higher = results.conf_int()[1]
+#     rsquared = results.rsquared
+#     rsquared_adj = results.rsquared_adj
+#     num_observations = len(results.fittedvalues)
 
-def results_summary_to_dataframe(nft,results):
-    '''take the result of an statsmodel results table and transforms it into a dataframe'''
-    pvals = results.pvalues
-    coeff = results.params
-    conf_lower = results.conf_int()[0]
-    conf_higher = results.conf_int()[1]
-    rsquared = results.rsquared
-    rsquared_adj = results.rsquared_adj
-    num_observations = len(results.fittedvalues)
+#     results_dict = pd.DataFrame({"nft":nft,
+#                     "num_observations":num_observations,
+#                     "coeff":coeff,
+#                     "pvals":pvals,
+#                     "conf_lower":conf_lower,
+#                     "conf_higher":conf_higher,
+#                     "rsquared":rsquared,
+#                     "rsquared_adj":rsquared_adj,
+#                      })
+#     return results_dict
 
-    results_dict = pd.DataFrame({"nft":nft,
-                    "num_observations":num_observations,
-                    "coeff":coeff,
-                    "pvals":pvals,
-                    "conf_lower":conf_lower,
-                    "conf_higher":conf_higher,
-                    "rsquared":rsquared,
-                    "rsquared_adj":rsquared_adj,
-                     })
-    return results_dict
 
 # tmp_list = []
 # for nft,value in df_analyse.items():
 #     if len(value) > 20: # any less than that is statistically insignificant
 #         # nft = 'cool-cats-nft'
 #         X = df_analyse[nft][default_cols]
-#         y = df_analyse[nft][nft_variable]
+#         y = df_analyse[nft]['total_price_eth']
 #         X = sm.add_constant(X) ## let's add an intercept (beta_0) to our model
 #         model = sm.OLS(y,X.astype(float)).fit()
 #         predictions = model.predict(X)

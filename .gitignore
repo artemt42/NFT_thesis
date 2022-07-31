@@ -6,3 +6,5 @@ collections/nft_collections.zip
 tweets.zip
 *.txt
 *.csv
+.Rproj.user
+rstudio/nft_thesis/.RData
