@@ -1,17 +1,12 @@
-# ------ Packages ------
 library ('dplyr')
+# library ('plyr')
 library ('stats')
 library ('broom')
-library ('tidyr')
-library ('purrr')
-library ('tibble')
-library ('modelr')
-library ('icesTAF')
+library('tidyr')
+options(scipen=999)
 
-#
-
-# ------ Tweet import and format ------
-source_tweets <- read.csv("tweets_clean_rstudio.csv",
+# ---- Tweet import and format ----
+source_tweets <- read.csv("C:\\Users\\atish\\Documents\\GitHub\\NFT_thesis\\rstudio\\tweets_clean_rstudio.csv",
                           header=TRUE)
 
 subset_tweets = subset(source_tweets,select = -c(tweet_text,reply_tweetid,tweet_hashtags,user_raw_description,user_description_links,user_location,user_protected,user_links,user_label,tweet_sent_language))
@@ -37,9 +32,9 @@ names(subset_tweets)[4] <- 'collection_slug'
 
 rm(source_tweets)
 
-# ------ NFT import and format ------
+# ---- NFT import and format ----
 
-source_nfts <- read.csv("nfts_clean.csv",
+source_nfts <- read.csv("C:\\Users\\atish\\Documents\\GitHub\\NFT_thesis\\rstudio\\nfts_clean.csv",
                         header=TRUE)
 
 subset_nfts = subset(source_nfts,select = -c(sampling,bid_amount,total_price_wei))
@@ -52,8 +47,9 @@ subset_nfts$event_timestamp <- as.Date(subset_nfts$event_timestamp)
 
 names(subset_nfts)[4] <- 'datetime'
 
-# ------ Group-by functions ------
-# ---- subset_tweets ----
+# ---- Groupby functions ----
+
+# subset_tweets
 
 foll = 0
 likes = 0
@@ -73,51 +69,33 @@ tweet_group_day_slug =
 
 
 
-# ---- subset_nfts ----
+# subset_nfts
 
 lag_days = 1
 subset_nfts$datetime <- lag(subset_nfts$datetime,lag_days)
 
 
-# ------ Analysis ------
+#---- Analysis ----
 
 df_combined_left <- merge(x = tweet_group_day_slug ,y = subset_nfts,how='left', by=c("datetime", "collection_slug"))
 
-options(scipen=999)
-options(digits=10)
+nft_price <- df_combined_left$total_price_eth
+tweet_mean_followers <- df_combined_left$average_followers
+tweet_count <- df_combined_left$total_tweets
+tweet_follower.tweet_count <- tweet_mean_followers * tweet_count
 
-total_lm <- lm(total_price_eth ~ 
-       average_followers
-       + total_tweets
-       + average_followers * total_tweets 
-     ,data = df_combined_left)
+# summary(lm(nft_price ~ 
+#              tweet_mean_followers +
+#              tweet_count +
+#              tweet_follower.tweet_count))
 
-total_variables <- broom::tidy(total_lm)
-total_variables <- total_variables %>% add_column(column_before="collection_slug",.before='r.squared')
-total_model <- broom::glance(total_lm)
-total_model <- total_model %>% add_column(column_before="collection_slug",.before='r.squared')
+models <- 
+  df_combined_left %>% 
+  nest_by(collection_slug) %>% 
+  mutate(mod=list(lm(nft_price ~
+          tweet_mean_followers +
+          tweet_count +
+          tweet_follower.tweet_count,
+          data = data))) %>%
+  summarise(tidy(mod))
 
-combined_lm <- df_combined_left %>% 
-  # filter(average_sent > 0.00) %>%
-  nest_by(collection_slug) %>%
-  mutate(mod = list(lm(total_price_eth ~ 
-                         average_followers
-                         + total_tweets 
-                         + average_followers * total_tweets
-                       ,data = data))) 
-
-per_variable <- combined_lm %>% summarize(tidy(mod))
-per_model <-combined_lm %>% summarize(glance(mod))
-
-
-# ------ Save files ------
-mkdir(paste(c(getwd(),'\\results\\',lag_days,'day(s)_lag'),collapse=''))
-fileNameVar = paste(c('results\\',lag_days,'day(s)_lag\\var_allSent_avFollow_totTweet_modded_day.csv'),collapse='')
-fileNameModel = paste(c('results\\',lag_days,'day(s)_lag\\model_allSent_avFollow_totTweet_modded_day.csv'),collapse='')
-
-write.csv(per_variable,
-          fileNameVar,
-          row.names = FALSE)
-write.csv(per_model,
-          fileNameModel,
-          row.names = FALSE)
