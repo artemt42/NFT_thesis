@@ -14,7 +14,7 @@ def nft_sales(table):
     # NFT
     nft_cols = ['collection_slug','asset_token_id','event_type',
                 'event_timestamp','sampling','bid_amount','total_price',
-                'from_account_address']
+                'seller_address','winner_account_address','listing_time']
     df = pull_events(nft_cols,table) # makes a call to the database
     # =============================================================================
     # Preparing data
@@ -27,11 +27,16 @@ def nft_sales(table):
                      'sampling':str,
                      'bid_amount':str,
                      'total_price':float,
-                     'from_account_address':str}
+                     'seller_address':str,
+                     'winner_account_address':str,
+                     'listing_time':str
+                     # 'from_account_address':str
+                     }
     
     df_nft_sales = df.replace('nan','').astype(nft_col_types) #replace nan with empty string and convert column types
     df_nft_sales = df_nft_sales.rename(columns={"total_price":"total_price_wei"}) #rename to total_price_wei, to convert values to eth
     df_nft_sales['event_timestamp'] = pd.to_datetime(df_nft_sales['event_timestamp']) # convert to date
+    df_nft_sales['listing_time'] = pd.to_datetime(df_nft_sales['listing_time']) # convert to date
     df_nft_sales["total_price_eth"] = df_nft_sales["total_price_wei"].div(10**18) # create column for wei -> eth
 
     return df_nft_sales
